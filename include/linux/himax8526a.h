@@ -4,6 +4,7 @@
 #include <linux/i2c.h>
 
 #define HIMAX8526A_NAME "Himax8526a"
+#define HIMAX8526A_FINGER_SUPPORT_NUM 4
 
 struct himax_config_init_api {
 	int (*i2c_himax_master_write)(struct i2c_client *client, uint8_t *data, uint8_t length);
