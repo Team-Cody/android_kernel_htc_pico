@@ -786,7 +786,7 @@ static int himax8526a_probe(struct i2c_client *client, const struct i2c_device_i
 		dev_err(&client->dev, "[TS] Failed to allocate input device\n");
 		goto err_input_dev_alloc_failed;
 	}
-	ts->input_dev->name = HIMAX8526A_NAME;
+	ts->input_dev->name = "himax-touchscreen";
 
 	set_bit(EV_SYN, ts->input_dev->evbit);
 	set_bit(EV_ABS, ts->input_dev->evbit);
