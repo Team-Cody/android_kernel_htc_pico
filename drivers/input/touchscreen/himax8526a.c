@@ -486,7 +486,7 @@ static void himax_touch_sysfs_deinit(void)
 static void himax_ts_work_func(struct work_struct *work)
 {
 	struct himax_ts_data *ts = container_of(work, struct himax_ts_data, work);
-	uint8_t buf[128], loop_i, finger_num, finger_pressed;
+	uint8_t buf[128], loop_i, finger_pressed;
 #ifdef ESD_WORKAROUND
 	uint32_t checksum;
 #endif
@@ -572,7 +572,6 @@ static void himax_ts_work_func(struct work_struct *work)
 		if (ts->debug_log_level & 0x2)
 			printk(KERN_INFO "[TS] All Fingers left\n");
 	} else {
-		finger_num = buf[20] & 0x0F;
 		finger_pressed = buf[21];
 		for (loop_i = 0; loop_i < HIMAX8526A_FINGER_SUPPORT_NUM; loop_i++) {
 			if (((finger_pressed >> loop_i) & 1) == 1) {
@@ -580,7 +579,6 @@ static void himax_ts_work_func(struct work_struct *work)
 				int x = buf[base] << 8 | buf[base + 1];
 				int y = (buf[base + 2] << 8 | buf[base + 3]);
 				int w = buf[16 + loop_i];
-				finger_num--;
 
 #ifdef INPUT_PROTOCOL_B
 				input_mt_slot(ts->input_dev, loop_i);
