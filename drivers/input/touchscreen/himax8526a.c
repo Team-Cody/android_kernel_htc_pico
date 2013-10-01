@@ -62,7 +62,6 @@ struct himax_ts_data {
 	uint8_t suspend_mode;
 	uint8_t last_slot;
 	struct himax_i2c_platform_data *pdata;
-	uint32_t event_htc_enable;
 	struct himax_config_init_api i2c_api;
 };
 static struct himax_ts_data *private_ts;
@@ -388,28 +387,6 @@ static ssize_t himax_diag_dump(struct device *dev,
 static DEVICE_ATTR(diag, (S_IWUSR|S_IRUGO),
 	himax_diag_show, himax_diag_dump);
 
-static ssize_t himax_set_event_htc(struct device *dev, struct device_attribute *attr,
-						const char *buf, size_t count)
-{
-	struct himax_ts_data *ts_data;
-	unsigned long result = 0;
-	ts_data = private_ts;
-	if (!strict_strtoul(buf, 10, &result)) {
-		ts_data->event_htc_enable = result;
-
-		pr_info("[ts]event htc enable = %d\n", ts_data->event_htc_enable);
-	}
-	return count;
-}
-
-static ssize_t himax_show_event_htc(struct device *dev, struct device_attribute *attr, char *buf)
-{
-	struct himax_ts_data *ts_data;
-	ts_data = private_ts;
-	return sprintf(buf, "event htc enable = %d\n", ts_data->event_htc_enable);
-}
-static DEVICE_ATTR(event_htc, (S_IWUSR|S_IRUGO), himax_show_event_htc, himax_set_event_htc);
-
 static ssize_t himax_reset_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
@@ -487,11 +464,6 @@ static int himax_touch_sysfs_init(void)
 		printk(KERN_ERR "[TS]%s: create_file diag failed\n", __func__);
 		return ret;
 	}
-	ret = sysfs_create_file(android_touch_kobj, &dev_attr_event_htc.attr);
-	if (ret) {
-		printk(KERN_ERR "[TS]%s: sysfs_create_file failed\n", __func__);
-		return ret;
-	}
 	ret = sysfs_create_file(android_touch_kobj, &dev_attr_reset.attr);
 	if (ret) {
 		printk(KERN_ERR "[TS]%s: sysfs_create_file failed\n", __func__);
@@ -507,7 +479,6 @@ static void himax_touch_sysfs_deinit(void)
 	sysfs_remove_file(android_touch_kobj, &dev_attr_debug_level.attr);
 	sysfs_remove_file(android_touch_kobj, &dev_attr_register.attr);
 	sysfs_remove_file(android_touch_kobj, &dev_attr_vendor.attr);
-	sysfs_remove_file(android_touch_kobj, &dev_attr_event_htc.attr);
 	sysfs_remove_file(android_touch_kobj, &dev_attr_reset.attr);
 	kobject_del(android_touch_kobj);
 }
@@ -582,14 +553,9 @@ static void himax_ts_work_func(struct work_struct *work)
 
 	if (buf[20] == 0xFF && buf[21] == 0xFF) {
 		/* finger leave */
-		if (!ts->event_htc_enable) {
-			input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, 0);
-			input_report_abs(ts->input_dev, ABS_MT_PRESSURE, 0);
-         input_report_key(ts->input_dev, BTN_TOUCH, 0);
-		} else {
-			input_report_abs(ts->input_dev, ABS_MT_AMPLITUDE, 0);
-			input_report_abs(ts->input_dev, ABS_MT_POSITION, 1 << 31);
-		}
+		input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, 0);
+		input_report_abs(ts->input_dev, ABS_MT_PRESSURE, 0);
+      input_report_key(ts->input_dev, BTN_TOUCH, 0);
 #ifdef INPUT_PROTOCOL_A
 		input_mt_sync(ts->input_dev);
 #else
@@ -619,18 +585,12 @@ static void himax_ts_work_func(struct work_struct *work)
 #ifdef INPUT_PROTOCOL_B
 				input_mt_slot(ts->input_dev, loop_i);
 #endif
-				if (!ts->event_htc_enable) {
-					input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, w);
-					input_report_abs(ts->input_dev, ABS_MT_WIDTH_MAJOR, w);
-					input_report_abs(ts->input_dev, ABS_MT_POSITION_X, x);
-					input_report_abs(ts->input_dev, ABS_MT_POSITION_Y, y);
-					input_report_abs(ts->input_dev, ABS_MT_PRESSURE, w);
-               input_report_key(ts->input_dev, BTN_TOUCH, 1);
-				} else {
-					input_report_abs(ts->input_dev, ABS_MT_AMPLITUDE, w << 16 | w);
-					input_report_abs(ts->input_dev, ABS_MT_POSITION,
-						((finger_num ==  0) ? BIT(31) : 0) | x << 16 | y);
-				}
+				input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, w);
+				input_report_abs(ts->input_dev, ABS_MT_WIDTH_MAJOR, w);
+				input_report_abs(ts->input_dev, ABS_MT_POSITION_X, x);
+				input_report_abs(ts->input_dev, ABS_MT_POSITION_Y, y);
+				input_report_abs(ts->input_dev, ABS_MT_PRESSURE, w);
+            input_report_key(ts->input_dev, BTN_TOUCH, 1);
 
 #ifdef INPUT_PROTOCOL_A
 				input_report_abs(ts->input_dev, ABS_MT_TRACKING_ID, loop_i);
@@ -658,8 +618,7 @@ static void himax_ts_work_func(struct work_struct *work)
 #endif
 		}
 	}
-	if (!ts->event_htc_enable)
-		input_sync(ts->input_dev);
+	input_sync(ts->input_dev);
 
 err_workqueue_out:
 	enable_irq(ts->client->irq);
@@ -760,7 +719,6 @@ static int himax8526a_probe(struct i2c_client *client, const struct i2c_device_i
 	}
 	ts->power = pdata->power;
 	ts->pdata = pdata;
-	ts->event_htc_enable = pdata->event_htc_enable;
 
 	i2c_himax_read(ts->client, 0x31, data, 3);
 	i2c_himax_read(ts->client, 0x32, &data[3], 1);

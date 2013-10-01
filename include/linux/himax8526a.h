@@ -26,7 +26,6 @@ struct himax_i2c_platform_data {
 	int gpio_irq;
 	uint8_t tw_id;
 	uint8_t slave_addr;
-	uint32_t event_htc_enable;
 	int (*loadSensorConfig)(struct i2c_client *client, struct himax_i2c_platform_data **pdata, struct himax_config_init_api *i2c_api);
 	uint8_t cable_config[2];
 	void (*reset)(void);
