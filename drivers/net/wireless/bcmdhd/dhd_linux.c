@@ -570,6 +570,10 @@ int dhd_set_keepalive(int value);
 #endif
 extern int wl_pattern_atoh(char *src, char *dst);
 /* HTC_CSP_END */
+bool wifi_pm = true;
+module_param(wifi_pm, bool, 0755);
+EXPORT_SYMBOL(wifi_pm);
+
 static int dhd_set_suspend(int value, dhd_pub_t *dhd)
 {
 	int is_screen_off = value;
@@ -592,6 +596,11 @@ static int dhd_set_suspend(int value, dhd_pub_t *dhd)
 	wl_android_set_screen_off(is_screen_off);
 	/* wl_iw_set_screen_off(is_screen_off); */
 /* HTC_CSP_END */
+
+	if (wifi_pm) {
+		power_mode = PM_FAST;
+		pr_info("%p Wi-Fi Power Management policy changed to PM_FAST.", __func__);
+	}
 
 
 	if (dhd && dhd->up) {
@@ -751,10 +760,7 @@ int dhdhtc_update_wifi_power_mode(int is_screen_off)
 		pm_type = PM_OFF;
 		dhd_wl_ioctl_cmd(dhd, WLC_SET_PM, (char *)&pm_type, sizeof(pm_type), TRUE, 0);
 	} else {
-		if (is_screen_off && !dhdcdc_wifiLock)
-			pm_type = PM_MAX;
-		else
-			pm_type = PM_FAST;
+		pm_type = PM_FAST;
 		printf("update pm: %s, wifiLock: %d\n", pm_type==1?"PM_MAX":"PM_FAST", dhdcdc_wifiLock);
 		dhd_wl_ioctl_cmd(dhd, WLC_SET_PM, (char *)&pm_type, sizeof(pm_type), TRUE, 0);
 	}
