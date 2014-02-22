@@ -597,12 +597,6 @@ static int dhd_set_suspend(int value, dhd_pub_t *dhd)
 	/* wl_iw_set_screen_off(is_screen_off); */
 /* HTC_CSP_END */
 
-	if (wifi_pm) {
-		power_mode = PM_FAST;
-		pr_info("%p Wi-Fi Power Management policy changed to PM_FAST.", __func__);
-	}
-
-
 	if (dhd && dhd->up) {
 		if (value && dhd->in_suspend) {
 
@@ -675,8 +669,8 @@ static int dhd_set_suspend(int value, dhd_pub_t *dhd)
 int dhd_set_keepalive(int value)
 {
     char *str;
-    int						str_len;
-    int   buf_len;
+    int str_len;
+    int buf_len;
     char buf[256];
     wl_keep_alive_pkt_t keep_alive_pkt;
     wl_keep_alive_pkt_t *keep_alive_pktp;
@@ -778,7 +772,6 @@ int dhdhtc_set_power_control(int power_mode, unsigned int reason)
 		} else {
 			dhdhtc_power_ctrl_mask &= ~(0x1<<reason);
 		}
-
 
 	} else {
 		printf("%s: Error reason: %u", __func__, reason);
