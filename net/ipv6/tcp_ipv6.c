@@ -1527,10 +1527,6 @@ static struct sock * tcp_v6_syn_recv_sock(struct sock *sk, struct sk_buff *skb,
 	tcp_mtup_init(newsk);
 	tcp_sync_mss(newsk, dst_mtu(dst));
 	newtp->advmss = dst_metric_advmss(dst);
-	if (tcp_sk(sk)->rx_opt.user_mss &&
-	    tcp_sk(sk)->rx_opt.user_mss < newtp->advmss)
-		newtp->advmss = tcp_sk(sk)->rx_opt.user_mss;
-
 	tcp_initialize_rcv_mss(newsk);
 
 	newinet->inet_daddr = newinet->inet_saddr = LOOPBACK4_IPV6;
@@ -1684,7 +1680,6 @@ static int tcp_v6_do_rcv(struct sock *sk, struct sk_buff *skb)
 	return 0;
 
 reset:
-	if (!skb->dev || (skb->dev->flags & IFF_LOOPBACK))
 	tcp_v6_send_reset(sk, skb);
 discard:
 	if (opt_skb)
@@ -1817,7 +1812,6 @@ no_tcp_socket:
 bad_packet:
 		TCP_INC_STATS_BH(net, TCP_MIB_INERRS);
 	} else {
-		if (skb->dev->flags & IFF_LOOPBACK)
 		tcp_v6_send_reset(NULL, skb);
 	}
 

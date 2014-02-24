@@ -217,6 +217,8 @@ static int caif_device_notify(struct notifier_block *me, unsigned long what,
 
 	caifdevs = caif_device_list(dev_net(dev));
 
+	caifdevs = caif_device_list(dev_net(dev));
+
 	switch (what) {
 	case NETDEV_REGISTER:
 		caifd = caif_device_alloc(dev);
@@ -424,9 +426,9 @@ static int __init caif_device_init(void)
 
 static void __exit caif_device_exit(void)
 {
+	unregister_pernet_subsys(&caif_net_ops);
 	unregister_netdevice_notifier(&caif_device_notifier);
 	dev_remove_pack(&caif_packet_type);
-	unregister_pernet_subsys(&caif_net_ops);
 }
 
 module_init(caif_device_init);

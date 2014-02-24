@@ -5210,6 +5210,7 @@ static void rollback_registered_many(struct list_head *head)
 	/* Process any work delayed until the end of the batch */
 	dev = list_first_entry(head, struct net_device, unreg_list);
 	call_netdevice_notifiers(NETDEV_UNREGISTER_BATCH, dev);
+	rtmsg_ifinfo(RTM_DELLINK, dev, ~0U);
 
 	rcu_barrier();
 

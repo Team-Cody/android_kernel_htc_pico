@@ -233,9 +233,7 @@ static inline struct rt6_info *ip6_dst_alloc(struct dst_ops *ops,
 {
 	struct rt6_info *rt = dst_alloc(ops, dev, 0, 0, flags);
 
-	if (rt != NULL)
-		memset(&rt->rt6i_table, 0,
-			sizeof(*rt) - sizeof(struct dst_entry));
+	memset(&rt->rt6i_table, 0, sizeof(*rt) - sizeof(struct dst_entry));
 
 	return rt;
 }
@@ -1377,11 +1375,6 @@ install_route:
 			}
 		}
 	}
-
-#ifdef CONFIG_HTC_NETWORK_MODIFY
-	if (IS_ERR(dev) || (!dev))
-		printk(KERN_ERR "[NET] dev is NULL in %s!\n", __func__);
-#endif
 
 	rt->dst.dev = dev;
 	rt->rt6i_idev = idev;

@@ -277,7 +277,6 @@ struct sock *cookie_v4_check(struct sock *sk, struct sk_buff *skb,
 	struct rtable *rt;
 	__u8 rcv_wscale;
 	bool ecn_ok = false;
-	struct flowi4 fl4;
 
 	if (!sysctl_tcp_syncookies || !th->ack || th->rst)
 		goto out;

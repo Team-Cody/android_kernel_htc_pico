@@ -1123,11 +1123,6 @@ config NETFILTER_XT_MATCH_U32
 
 endif # NETFILTER_XTABLES
 
-config HTC_NETWORK_MODIFY
-	tristate
-	---help---
-	  HTC NET MODIFY
-
 endmenu
 
 source "net/netfilter/ipset/Kconfig"

@@ -14,8 +14,3 @@ config PACKET
 	  be called af_packet.
 
 	  If unsure, say Y.
-
-config HTC_NETWORK_MODIFY
-	tristate
-	---help---
-	  HTC NET MODIFY

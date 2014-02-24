@@ -367,9 +367,7 @@ extern int rcu_my_thread_group_empty(void);
 	})
 #define __rcu_assign_pointer(p, v, space) \
 	({ \
-		if (!__builtin_constant_p(v) || \
-		    ((v) != NULL)) \
-			smp_wmb(); \
+		smp_wmb(); \
 		(p) = (typeof(*v) __force space *)(v); \
 	})
 
@@ -718,6 +716,12 @@ static inline notrace void rcu_read_unlock_sched_notrace(void)
 #define RCU_INIT_POINTER(p, v) \
 		p = (typeof(*v) __force __rcu *)(v)
 
+#define rcu_assign_pointer_nonull(p, v) \
+	({ \
+		if (!__builtin_constant_p(v)) \
+			smp_wmb(); \
+		(p) = (v); \
+	})
 /* Infrastructure to implement the synchronize_() primitives. */
 
 struct rcu_synchronize {

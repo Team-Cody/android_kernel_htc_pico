@@ -912,7 +912,9 @@ int ieee80211_build_preq_ies(struct ieee80211_local *local, u8 *buffer,
 	u8 *pos;
 	size_t offset = 0, noffset;
 	int supp_rates_len, i;
-	u8 rates[32];
+	/*HTC_WIFI_START*/
+	u8 rates[32] = {0};
+	/*HTC_WIF_END*/
 	int num_rates;
 	int ext_rates_len;
 
@@ -1254,12 +1256,6 @@ int ieee80211_reconfig(struct ieee80211_local *local)
 		}
 	}
 
-	/* add back keys */
-	list_for_each_entry(sdata, &local->interfaces, list)
-		if (ieee80211_sdata_running(sdata))
-			ieee80211_enable_keys(sdata);
-
- wake_up:
 	/*
 	 * Clear the WLAN_STA_BLOCK_BA flag so new aggregation
 	 * sessions can be established after a resume.
@@ -1281,6 +1277,12 @@ int ieee80211_reconfig(struct ieee80211_local *local)
 		mutex_unlock(&local->sta_mtx);
 	}
 
+	/* add back keys */
+	list_for_each_entry(sdata, &local->interfaces, list)
+		if (ieee80211_sdata_running(sdata))
+			ieee80211_enable_keys(sdata);
+
+ wake_up:
 	ieee80211_wake_queues_by_reason(hw,
 			IEEE80211_QUEUE_STOP_REASON_SUSPEND);
 
