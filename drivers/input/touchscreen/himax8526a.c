@@ -87,10 +87,6 @@ struct himax_ts_data {
 	int s2w_touched;
 	int s2w_x_pos;
 #endif
-#ifdef HIMAX_DT2W
-	int dt2w_x_pos;
-	int dt2w_y_pos;
-#endif
 };
 static struct himax_ts_data *private_ts;
 static uint8_t reset_activate;
@@ -618,6 +614,8 @@ static void dt2w_func(int x, int y) {
 
 		if ((((dt2w_time[0]-dt2w_time[1]) ) > DT2W_TIMEOUT_MIN)
 			&& (((dt2w_time[0]-dt2w_time[1]) ) < DT2W_TIMEOUT_MAX)
+			&& (abs((dt2w_x[0]-dt2w_x[1])) < DT2W_DELTA)
+			&& (abs((dt2w_y[0]-dt2w_y[1])) < DT2W_DELTA)
 			) {
 				dt2w_time[0] = 0;
 				dt2w_time[1] = 0;
