@@ -592,13 +592,7 @@ static void dt2w_func(int x, int y) {
 		return;
 	}
 
-	if (((abs(dt2w_x[0]))>0) && ((abs(dt2w_x[1]))==0)) {
-		int delta_x = 0;
-		int delta_y = 0;
-
-		delta_x = (x-dt2w_x[0]);
-		delta_y = (y-dt2w_y[0]);
-
+	if ((abs(dt2w_x[0])) && ((abs(dt2w_x[1]))==0)) {
 		dt2w_x[1] = dt2w_x[0]; dt2w_x[0] = x;
 		dt2w_y[1] = dt2w_y[0]; dt2w_y[0] = y;
 
@@ -609,8 +603,6 @@ static void dt2w_func(int x, int y) {
 
 		if ((((dt2w_time[0]-dt2w_time[1]) ) > DT2W_TIMEOUT_MIN)
 			&& (((dt2w_time[0]-dt2w_time[1]) ) < DT2W_TIMEOUT_MAX)
-			&& (abs(delta_x) < DT2W_DELTA)
-			&& (abs(delta_y) < DT2W_DELTA)
 			) {
 				dt2w_time[0] = 0;
 				dt2w_time[1] = 0;
@@ -782,10 +774,10 @@ static void himax_ts_work_func(struct work_struct *work)
 		}
 #ifdef HIMAX_DT2W
 		if (dt2w_switch) {
-			/*if ((dt2w_time!=0)&&((jiffies_to_msecs(jiffies-dt2w_time[0]) / 1000U)>2)) {
-				dt2w_x[0]==0;
-				dt2w_y[0]==0;
-			}*/
+			if ((dt2w_time[0]!=0) && (ktime_to_ms(ktime_get())-dt2w_time[0])>DT2W_TIMEOUT_MAX) {
+				dt2w_x[0] = 0;
+				dt2w_y[0] = 0;
+			}
 			dt2w_func(x, y);
 		}
 #endif
