@@ -582,8 +582,6 @@ static DEVICE_ATTR(dt2sswitch, (S_IWUSR|S_IRUGO),
 	himax_dt2s_show, himax_dt2s_set);
 
 void himax_dt2w_power(struct work_struct *himax_dt2w_power_work) {
-	if (!(dt2s_switch)&&(is_screen_on))
-		return;
 	input_event(sweep2wake_pwrdev, EV_KEY, KEY_POWER, 1);
 	input_event(sweep2wake_pwrdev, EV_SYN, 0, 0);
 	msleep(100);
@@ -801,7 +799,7 @@ static void himax_ts_work_func(struct work_struct *work)
 				dt2w_x[0] = 0;
 				dt2w_y[0] = 0;
 			}
-			if (y < ts->pdata->abs_y_max)
+			if ((y < ts->pdata->abs_y_max)&&(!(!(dt2s_switch)&&(is_screen_on))))
 				dt2w_func(x, y);
 			
 		}
