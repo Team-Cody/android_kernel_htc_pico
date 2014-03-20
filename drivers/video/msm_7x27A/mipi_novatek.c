@@ -16,6 +16,10 @@
 #include "msm_fb.h"
 #include "mipi_dsi.h"
 #include "mipi_novatek.h"
+#ifdef CONFIG_TOUCHSCREEN_HIMAX_DT2W
+#include <linux/input/doubletap2wake.h>
+bool is_screen_on = false;
+#endif
 /* -----------------------------------------------------------------------------
  *                         External routine declaration
  * ----------------------------------------------------------------------------- */
@@ -489,6 +493,7 @@ static void mipi_novatek_bkl_ctrl(struct msm_fb_data_type *mfd, bool on)
 
 static int mipi_novatek_lcd_on(struct platform_device *pdev)
 {
+	is_screen_on = true;
 	struct msm_fb_data_type *mfd;
 	struct msm_fb_panel_data *pdata = NULL;
 	struct msm_panel_info *pinfo;
@@ -540,6 +545,7 @@ static int mipi_novatek_lcd_on(struct platform_device *pdev)
 
 static int mipi_novatek_lcd_off(struct platform_device *pdev)
 {
+	is_screen_on = false;
 	struct msm_fb_data_type *mfd;
 
 	PR_DISP_INFO("%s\n", __func__);
