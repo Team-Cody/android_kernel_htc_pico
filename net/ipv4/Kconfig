@@ -630,3 +630,7 @@ config TCP_MD5SIG
 	  on the Internet.
 
 	  If unsure, say N.
+
+config HTC_NETWORK_MODIFY
+	tristate
+	---help---
