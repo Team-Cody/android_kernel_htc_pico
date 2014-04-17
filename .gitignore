@@ -14,6 +14,7 @@
 *.o.*
 *.a
 *.s
+*.S
 *.ko
 *.so
 *.so.dbg
@@ -29,6 +30,7 @@ modules.builtin
 *.bz2
 *.lzma
 *.xz
+*.xzkern
 *.lzo
 *.patch
 *.gcno
@@ -89,3 +91,4 @@ GTAGS
 boot.img
 workspace/*
 push_source
+*.zip
