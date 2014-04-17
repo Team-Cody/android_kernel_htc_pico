@@ -666,11 +666,14 @@ static int himax_touch_sysfs_init(void)
 		printk(KERN_ERR "[TS]%s: sysfs_create_file reset failed\n", __func__);
 		return ret;
 	}
+#ifdef HIMAX_S2W
 	ret = sysfs_create_file(android_touch_kobj, &dev_attr_s2wswitch.attr);
 	if (ret) {
 		printk(KERN_ERR "[TS]%s: sysfs_create_file s2wswitch failed\n", __func__);
 		return ret;
 	}
+#endif
+#ifdef HIMAX_DT2W
 	ret = sysfs_create_file(android_touch_kobj, &dev_attr_dt2wswitch.attr);
 	if (ret) {
 		printk(KERN_ERR "[TS]%s: sysfs_create_file dt2wswitch failed\n", __func__);
@@ -681,6 +684,7 @@ static int himax_touch_sysfs_init(void)
 		printk(KERN_ERR "[TS]%s: sysfs_create_file dt2sswitch failed\n", __func__);
 		return ret;
 	}
+#endif
 
 	return 0 ;
 }
@@ -692,9 +696,13 @@ static void himax_touch_sysfs_deinit(void)
 	sysfs_remove_file(android_touch_kobj, &dev_attr_register.attr);
 	sysfs_remove_file(android_touch_kobj, &dev_attr_vendor.attr);
 	sysfs_remove_file(android_touch_kobj, &dev_attr_reset.attr);
+#ifdef HIMAX_S2W
 	sysfs_remove_file(android_touch_kobj, &dev_attr_s2wswitch.attr);
+#endif
+#ifdef HIMAX_DT2W
 	sysfs_remove_file(android_touch_kobj, &dev_attr_dt2wswitch.attr);
 	sysfs_remove_file(android_touch_kobj, &dev_attr_dt2sswitch.attr);
+#endif
 	kobject_del(android_touch_kobj);
 }
 
