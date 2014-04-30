@@ -102,7 +102,6 @@ static int s2w_switch = 1;
 #endif
 #ifdef HIMAX_DT2W
 static int dt2w_switch = 1;
-static int dt2s_switch = 0;
 static cputime64_t dt2w_time[2] = {0, 0};
 static unsigned int dt2w_x[2] = {0, 0};
 static unsigned int dt2w_y[2] = {0, 0};
@@ -556,27 +555,6 @@ static ssize_t himax_dt2w_set(struct device *dev,
 static DEVICE_ATTR(dt2wswitch, (S_IWUSR|S_IRUGO),
 	himax_dt2w_show, himax_dt2w_set);
 
-static ssize_t himax_dt2s_show(struct device *dev,
-		struct device_attribute *attr, char *buf)
-{
-	size_t count = 0;
-	count += sprintf(buf, "%d\n", dt2s_switch);
-	return count;
-}
-
-static ssize_t himax_dt2s_set(struct device *dev,
-		struct device_attribute *attr, const char *buf, size_t count)
-{
-	if (buf[0] == '1')
-		dt2s_switch = 1;
-	else
-		dt2s_switch = 0;
-	return count;
-}
-
-static DEVICE_ATTR(dt2sswitch, (S_IWUSR|S_IRUGO),
-	himax_dt2s_show, himax_dt2s_set);
-
 void himax_dt2w_power(struct work_struct *himax_dt2w_power_work) {
 	input_event(sweep2wake_pwrdev, EV_KEY, KEY_POWER, 1);
 	input_event(sweep2wake_pwrdev, EV_SYN, 0, 0);
@@ -592,6 +570,10 @@ void himax_dt2w_power(struct work_struct *himax_dt2w_power_work) {
 static DECLARE_WORK(himax_dt2w_power_work, himax_dt2w_power);
 
 static void dt2w_func(int x, int y) {
+	if (is_screen_on) {
+		printk(KERN_INFO "%s: screen is on!\n", __func__);
+		return;
+	}
 
 	if (((abs(dt2w_x[0]))==0) && ((abs(dt2w_x[1]))==0)) {
 		dt2w_x[0] = x;
@@ -679,11 +661,6 @@ static int himax_touch_sysfs_init(void)
 		printk(KERN_ERR "[TS]%s: sysfs_create_file dt2wswitch failed\n", __func__);
 		return ret;
 	}
-	ret = sysfs_create_file(android_touch_kobj, &dev_attr_dt2sswitch.attr);
-	if (ret) {
-		printk(KERN_ERR "[TS]%s: sysfs_create_file dt2sswitch failed\n", __func__);
-		return ret;
-	}
 #endif
 
 	return 0 ;
@@ -701,7 +678,6 @@ static void himax_touch_sysfs_deinit(void)
 #endif
 #ifdef HIMAX_DT2W
 	sysfs_remove_file(android_touch_kobj, &dev_attr_dt2wswitch.attr);
-	sysfs_remove_file(android_touch_kobj, &dev_attr_dt2sswitch.attr);
 #endif
 	kobject_del(android_touch_kobj);
 }
@@ -805,8 +781,9 @@ static void himax_ts_work_func(struct work_struct *work)
 				dt2w_x[0] = 0;
 				dt2w_y[0] = 0;
 			}
-			if ((y < ts->pdata->abs_y_max)&&(!(!(dt2s_switch)&&(is_screen_on))))
+			if (y < ts->pdata->abs_y_max) {
 				dt2w_func(x, y);
+			}
 			
 		}
 #endif
