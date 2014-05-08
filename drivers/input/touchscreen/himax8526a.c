@@ -95,11 +95,19 @@ static void himax_ts_late_resume(struct early_suspend *h);
 
 #ifdef HIMAX_S2W
 static struct input_dev * sweep2wake_pwrdev;
+#ifdef CONFIG_TOUCHSCREEN_HIMAX_S2W_ENABLED
 static int s2w_switch = 1;
+#else
+static int s2w_switch = 0;
+#endif //HIMAX_S2W_ENABLED
 #endif
 #ifdef HIMAX_DT2W
 static struct input_dev * doubletap2wake_pwrdev;
+#ifdef CONFIG_TOUCHSCREEN_HIMAX_DT2W_ENABLED
 static int dt2w_switch = 1;
+#else
+static int dt2w_switch = 0;
+#endif //HIMAX_DT2W_ENABLED
 static cputime64_t dt2w_time[2] = {0, 0};
 static unsigned int dt2w_x[2] = {0, 0};
 static unsigned int dt2w_y[2] = {0, 0};
