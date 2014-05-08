@@ -1178,6 +1178,13 @@ config HTC_BATTCHG
         default n
         bool "HTC battery / charger driver"
 
+config FORCE_FAST_CHARGE
+        bool "Force AC charge mode at will"
+        default n
+        help
+          A simple sysfs interface to force adapters that
+          are detected as USB to charge as AC.
+
 config HTC_BATTCHG_MAX8957
 	depends on MSM_ONCRPCROUTER && POWER_SUPPLY
 	default n
@@ -2368,11 +2375,4 @@ config HTC_ACCESSORY_ONEWIRE
         default n
         help
           Provides support of HTC one wire protocol driver.
-
-config FORCE_FAST_CHARGE
-        bool "Force AC charge mode at will"
-        default y
-        help
-          A simple sysfs interface to force adapters that
-          are detected as USB to charge as AC.
 endif
