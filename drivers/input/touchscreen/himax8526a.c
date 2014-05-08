@@ -46,18 +46,15 @@
 
 #ifdef CONFIG_TOUCHSCREEN_HIMAX_DT2W
 #define HIMAX_DT2W
-#endif
-
-#define HIMAX_I2C_RETRY_TIMES 10
-#define ESD_WORKAROUND
-
-#ifdef HIMAX_DT2W
 #define DT2W_TIMEOUT_MAX 400
 #define DT2W_TIMEOUT_MIN 1
 #define DT2W_DELTA 50
 int x = 0;
 int y = 0;
 #endif
+
+#define HIMAX_I2C_RETRY_TIMES 10
+#define ESD_WORKAROUND
 
 struct himax_ts_data {
 	int use_irq;
@@ -101,8 +98,8 @@ static struct input_dev * sweep2wake_pwrdev;
 static int s2w_switch = 1;
 #endif
 #ifdef HIMAX_DT2W
+static struct input_dev * doubletap2wake_pwrdev;
 static int dt2w_switch = 1;
-static int dt2s_switch = 0;
 static cputime64_t dt2w_time[2] = {0, 0};
 static unsigned int dt2w_x[2] = {0, 0};
 static unsigned int dt2w_y[2] = {0, 0};
@@ -556,33 +553,18 @@ static ssize_t himax_dt2w_set(struct device *dev,
 static DEVICE_ATTR(dt2wswitch, (S_IWUSR|S_IRUGO),
 	himax_dt2w_show, himax_dt2w_set);
 
-static ssize_t himax_dt2s_show(struct device *dev,
-		struct device_attribute *attr, char *buf)
-{
-	size_t count = 0;
-	count += sprintf(buf, "%d\n", dt2s_switch);
-	return count;
+extern void himax_dt2w_setinp(struct input_dev *dev) {
+	doubletap2wake_pwrdev = dev;
 }
 
-static ssize_t himax_dt2s_set(struct device *dev,
-		struct device_attribute *attr, const char *buf, size_t count)
-{
-	if (buf[0] == '1')
-		dt2s_switch = 1;
-	else
-		dt2s_switch = 0;
-	return count;
-}
-
-static DEVICE_ATTR(dt2sswitch, (S_IWUSR|S_IRUGO),
-	himax_dt2s_show, himax_dt2s_set);
+EXPORT_SYMBOL(himax_dt2w_setinp);
 
 void himax_dt2w_power(struct work_struct *himax_dt2w_power_work) {
-	input_event(sweep2wake_pwrdev, EV_KEY, KEY_POWER, 1);
-	input_event(sweep2wake_pwrdev, EV_SYN, 0, 0);
+	input_event(doubletap2wake_pwrdev, EV_KEY, KEY_POWER, 1);
+	input_event(doubletap2wake_pwrdev, EV_SYN, 0, 0);
 	msleep(100);
-	input_event(sweep2wake_pwrdev, EV_KEY, KEY_POWER, 0);
-	input_event(sweep2wake_pwrdev, EV_SYN, 0, 0);
+	input_event(doubletap2wake_pwrdev, EV_KEY, KEY_POWER, 0);
+	input_event(doubletap2wake_pwrdev, EV_SYN, 0, 0);
 	msleep(100);
 	if (is_screen_on)
 		printk(KERN_INFO "[TS][DT2W]%s: Turn it off", __func__);
@@ -592,6 +574,10 @@ void himax_dt2w_power(struct work_struct *himax_dt2w_power_work) {
 static DECLARE_WORK(himax_dt2w_power_work, himax_dt2w_power);
 
 static void dt2w_func(int x, int y) {
+	if (is_screen_on) {
+		printk(KERN_INFO "%s: screen is on!\n", __func__);
+		return;
+	}
 
 	if (((abs(dt2w_x[0]))==0) && ((abs(dt2w_x[1]))==0)) {
 		dt2w_x[0] = x;
@@ -679,11 +665,6 @@ static int himax_touch_sysfs_init(void)
 		printk(KERN_ERR "[TS]%s: sysfs_create_file dt2wswitch failed\n", __func__);
 		return ret;
 	}
-	ret = sysfs_create_file(android_touch_kobj, &dev_attr_dt2sswitch.attr);
-	if (ret) {
-		printk(KERN_ERR "[TS]%s: sysfs_create_file dt2sswitch failed\n", __func__);
-		return ret;
-	}
 #endif
 
 	return 0 ;
@@ -701,7 +682,6 @@ static void himax_touch_sysfs_deinit(void)
 #endif
 #ifdef HIMAX_DT2W
 	sysfs_remove_file(android_touch_kobj, &dev_attr_dt2wswitch.attr);
-	sysfs_remove_file(android_touch_kobj, &dev_attr_dt2sswitch.attr);
 #endif
 	kobject_del(android_touch_kobj);
 }
@@ -799,17 +779,18 @@ static void himax_ts_work_func(struct work_struct *work)
 			if (himax_s2w_status())
 				himax_s2w_release();
 		}
+#endif
 #ifdef HIMAX_DT2W
 		if (dt2w_switch) {
 			if ((dt2w_time[0]!=0) && (ktime_to_ms(ktime_get())-dt2w_time[0])>DT2W_TIMEOUT_MAX) {
 				dt2w_x[0] = 0;
 				dt2w_y[0] = 0;
 			}
-			if ((y < ts->pdata->abs_y_max)&&(!(!(dt2s_switch)&&(is_screen_on))))
+			if (y < ts->pdata->abs_y_max) {
 				dt2w_func(x, y);
+			}
 			
 		}
-#endif
 #endif
 	} else {
 		finger_pressed = buf[21];
@@ -1125,69 +1106,72 @@ static int himax8526a_suspend(struct i2c_client *client, pm_message_t mesg)
 	int ret;
 	uint8_t data = 0x01;
 	struct himax_ts_data *ts = i2c_get_clientdata(client);
-#ifdef HIMAX_S2W
-#ifdef HIMAX_DT2W
+#if defined(HIMAX_S2W) && defined(HIMAX_DT2W)
 	if ((!s2w_switch)||(!dt2w_switch)) {
-#else
+#elif defined(HIMAX_S2W) && !defined(HIMAX_DT2W)
 	if (!s2w_switch) {
-#endif
+#elif !defined(HIMAX_S2W) && defined(HIMAX_DT2W)
+	if (!dt2w_switch) {
 #endif
 		uint8_t new_command[2] = {0x91, 0x00};
 		i2c_himax_master_write(ts->client, new_command, sizeof(new_command));
-#ifdef HIMAX_S2W
+#if defined(HIMAX_S2W) || defined(HIMAX_DT2W)
 	}
 #endif
 	printk(KERN_DEBUG "%s: diag_command= %d\n", __func__, ts->diag_command);
-#ifdef HIMAX_S2W
-#ifdef HIMAX_DT2W
+
+#if defined(HIMAX_S2W) && defined(HIMAX_DT2W)
 	if ((s2w_switch)||(dt2w_switch))
-#else
+#elif defined(HIMAX_S2W) && !defined(HIMAX_DT2W)
 	if (s2w_switch)
+#elif !defined(HIMAX_S2W) && defined(HIMAX_DT2W)
+	if (dt2w_switch)
 #endif
+#if defined(HIMAX_S2W) || defined(HIMAX_DT2W)
 		enable_irq_wake(client->irq);
 #endif
 
 	printk(KERN_INFO "%s: enter\n", __func__);
-#ifdef HIMAX_S2W
-#ifdef HIMAX_DT2W
+#if defined(HIMAX_S2W) && defined(HIMAX_DT2W)
 	if ((!s2w_switch)||(!dt2w_switch))
-#else
+#elif defined(HIMAX_S2W) && !defined(HIMAX_DT2W)
 	if (!s2w_switch)
-#endif
+#elif !defined(HIMAX_S2W) && defined(HIMAX_DT2W)
+	if (!dt2w_switch)
 #endif
 		disable_irq(client->irq);
 
 	if (!ts->use_irq) {
 		ret = cancel_work_sync(&ts->work);
-#ifdef HIMAX_S2W
-#ifdef HIMAX_DT2W
+#if defined(HIMAX_S2W) && defined(HIMAX_DT2W)
 		if ((!s2w_switch)||(!dt2w_switch)) {
-#else
+#elif defined(HIMAX_S2W) && !defined(HIMAX_DT2W)
 		if (!s2w_switch) {
-#endif
+#elif !defined(HIMAX_S2W) && defined(HIMAX_DT2W)
+		if (!dt2w_switch) {
 #endif
 			if (ret && ts->use_irq)
 				enable_irq(client->irq);
-#ifdef HIMAX_S2W
+#if defined(HIMAX_S2W) || defined(HIMAX_DT2W)
 		}
 #endif
 		if (ret)
 			enable_irq(client->irq);
 	}
 
-#ifdef HIMAX_S2W
-#ifdef HIMAX_DT2W
+#if defined(HIMAX_S2W) && defined(HIMAX_DT2W)
 	if ((!s2w_switch)||(!dt2w_switch)) {
-#else
+#elif defined(HIMAX_S2W) && !defined(HIMAX_DT2W)
 	if (!s2w_switch) {
-#endif
+#elif !defined(HIMAX_S2W) && defined(HIMAX_DT2W)
+	if (!dt2w_switch) {
 #endif
 		i2c_himax_write_command(ts->client, 0x82);
 		msleep(120);
 		i2c_himax_write_command(ts->client, 0x80);
 		msleep(120);
 		i2c_himax_write(ts->client, 0xD7, &data, 1);
-#ifdef HIMAX_S2W
+#if defined(HIMAX_S2W) || defined(HIMAX_DT2W)
 	}
 #endif
 	ts->first_pressed = 0;
@@ -1204,22 +1188,24 @@ static int himax8526a_resume(struct i2c_client *client)
 	const uint8_t command_ec_128_raw_baseline_flag = 0x02 | command_ec_128_raw_flag;
 	uint8_t new_command[2] = {0x91, 0x00};
 
-#ifdef HIMAX_S2W
-#ifdef HIMAX_DT2W
+#if defined(HIMAX_S2W) && defined(HIMAX_DT2W)
 	if ((s2w_switch)||(dt2w_switch))
-#else
+#elif defined(HIMAX_S2W) && !defined(HIMAX_DT2W)
 	if (s2w_switch)
+#elif !defined(HIMAX_S2W) && defined(HIMAX_DT2W)
+	if (dt2w_switch)
 #endif
+#if defined(HIMAX_S2W) || defined(HIMAX_DT2W)
 	disable_irq_wake(client->irq);
 #endif
 
 	printk(KERN_INFO "%s: enter\n", __func__);
-#ifdef HIMAX_S2W
-#ifdef HIMAX_DT2W
+#if defined(HIMAX_S2W) && defined(HIMAX_DT2W)
 	if ((!s2w_switch)||(!dt2w_switch)) {
-#else
+#elif defined(HIMAX_S2W) && !defined(HIMAX_DT2W)
 	if (!s2w_switch) {
-#endif
+#elif !defined(HIMAX_S2W) && defined(HIMAX_DT2W)
+	if (!dt2w_switch) {
 #endif
 		data[0] = 0x00;
 		i2c_himax_write(ts->client, 0xD7, &data[0], 1);
@@ -1245,7 +1231,7 @@ static int himax8526a_resume(struct i2c_client *client)
 
 		i2c_himax_write_command(ts->client, 0x83);
 		printk(KERN_DEBUG "%s: diag_command= %d\n", __func__, ts->diag_command);
-#ifdef HIMAX_S2W
+#if defined(HIMAX_S2W) || defined(HIMAX_DT2W)
 	}
 #endif
 	msleep(10);
@@ -1266,14 +1252,16 @@ static int himax8526a_resume(struct i2c_client *client)
 	ts->suspend_mode = 0;
 #ifdef HIMAX_S2W
 	ts->s2w_touched = 0;
-#ifdef HIMAX_DT2W
-	if ((!s2w_switch)||(!dt2w_switch)) {
-#else
-	if (!s2w_switch) {
 #endif
+#if defined(HIMAX_S2W) && defined(HIMAX_DT2W)
+	if ((!s2w_switch)||(!dt2w_switch)) {
+#elif defined(HIMAX_S2W) && !defined(HIMAX_DT2W)
+	if (!s2w_switch) {
+#elif !defined(HIMAX_S2W) && defined(HIMAX_DT2W)
+	if (!dt2w_switch) {
 #endif
 	enable_irq(client->irq);
-#ifdef HIMAX_S2W
+#if defined(HIMAX_S2W) || defined(HIMAX_DT2W)
 	}
 #endif
 	return 0;
